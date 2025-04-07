@@ -1,0 +1,53 @@
+# OpenSSL Configuration File for Intermediate CA
+
+# This is the main configuration file for the Intermediate CA
+# Adjust paths and parameters as necessary
+
+[ ca ]
+default_ca = CA_default           # Default CA section
+
+[ CA_default ]
+# Directory and file locations
+dir               = /path/to/your/pki/intermediate    # The base directory of your Intermediate CA
+certs             = $dir/certs                     # Directory to store certificates
+crl_dir           = $dir/crl                       # Directory to store CRLs
+new_certs_dir     = $dir/newcerts                  # Directory to store new certificates
+database          = $dir/myindex                  # Database to track issued certificates
+
+# File locations for the key and certificate files
+private_key       = $dir/private/intermediate.key  # Path to your Intermediate private key
+certificate       = $dir/certs/intermediate.crt   # Path to your Intermediate certificate
+
+# CRL settings
+crlnumber         = $dir/crlnumber                # CRL number file
+crl               = $dir/crl/intermediate.crl     # Path to the CRL
+
+# Certificate policy
+policy            = policy_any
+
+# Default key size
+default_days      = 3650                           # Default validity for certificates (in days)
+default_crl_days  = 30                             # Default validity for CRLs
+default_md        = sha256                         # Hashing algorithm
+preserve          = no                             # Preserve the certificate request (optional)
+
+# The subject DN (Distinguished Name) fields
+[ policy_any ]
+# The fields that we accept for subject name
+commonName        = supplied                      # The common name (e.g., "Intermediate CA")
+countryName       = optional                      # Country Name (optional)
+stateOrProvinceName = optional                    # State or Province Name (optional)
+localityName      = optional                      # Locality Name (optional)
+organizationName  = supplied                      # Organization Name (e.g., "My Org")
+organizationalUnitName = optional                  # Organizational Unit Name (optional)
+emailAddress      = optional                      # Email Address (optional)
+
+# Extensions for the Intermediate CA certificate
+[ extensions_intermediate_ca ]
+# Basic constraints for intermediate certificate
+basicConstraints = critical, CA:TRUE, pathlen:0   # Set the certificate as a CA, and restrict the path length
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign   # Key usage for CA cert
+extendedKeyUsage = serverAuth, clientAuth          # Usage for this intermediate CA (can be customized)
+subjectKeyIdentifier = hash                       # Subject key identifier for this CA certificate
+authorityKeyIdentifier = keyid,issuer:always      # Authority key identifier
+issuerAltName = issuer:copy                       # Copy issuer's subject name to the certificate

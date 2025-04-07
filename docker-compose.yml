@@ -19,6 +19,9 @@ services:
       - flask-app
     networks:
       - flask-nginx-net
+    volumes:
+      - ./pki/server:/etc/nginx/ssl  # <--- This is the key line
+      - ./pki/root/certs:/etc/nginx/ssl/certs  # Mount root CA certificates
 
 networks:
   flask-nginx-net:
