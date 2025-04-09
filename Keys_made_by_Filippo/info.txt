@@ -1,0 +1,8 @@
+INFO on folders:
+- ‘certs’ directory is used to store issued certificates.
+- ‘crl’ directory is used to store the Certificate Revocation List.
+- directory ‘newcerts’ is used to store new certificates.
+- directory ‘private’ is used to store private keys.
+- ‘index.txt’ which will serve as a flat-file database for issued certificates.
+- ‘serial’ which stores the serial number of the next certificate.
+- 'csr' that stores the CSR (Certificate Signing Request) in the case of Intermediate CAs
