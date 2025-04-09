@@ -1,124 +1,139 @@
+import subprocess
 from flask import Flask, jsonify, request, render_template, send_from_directory
 import os
-import subprocess
 import shutil
 
 # Initialize the Flask application
 app = Flask(__name__)
 
-# Paths for the PKI directories  I HAVE TO READ MORE ABOUT THE PROCESS OF CREATING THE USER PRIVATE KEYS ETC 
-# AND WITH WHAT AND WHAT SHOULD BE SIUGNED BY THE INTERMEDIATE CA OR ROOT CA
-
-ROOT_CA_PATH = '/path/to/your/rootCA'
-INTERMEDIATE_CA_PATH = '/path/to/your/intermediateCA'
-USER_CERTS_PATH = '/path/to/your/pki/users'
-
 INTERMEDIATE_CA_CERT = "/Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate/certs/intermediateCA.crt"
 INTERMEDIATE_CA_KEY = "/Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate/private/intermediateCA.key"
 CRL_PATH = "/Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate/crl/crl.pem"  #Path to the CRL (Certificate Revocation List) file
 USER_CERTS_PATH = "/Users/filiporlikowski/Documents/SEGPRD/project/pki/users"
+# Home route (returns a welcome message)
+@app.route('/')
+def home():
+    return "Welcome to the Flask App!"
 
-# Ensure the necessary directories exist
-os.makedirs(USER_CERTS_PATH, exist_ok=True)
+# JSON response route (returns a JSON response)
+@app.route('/api')
+def api():
+    return jsonify({
+        "message": "This is a simple API response",
+        "status": "success"
+    })
 
-# Helper function to execute shell commands (e.g., OpenSSL)
-def run_command(command):
+# Route with a dynamic parameter
+@app.route('/hello/<name>')
+def hello(name):
+    return f"Hello, {name}!"
+
+# Form submission route (GET and POST)
+@app.route('/submit', methods=['GET', 'POST'])
+def submit():
+    if request.method == 'POST':
+        # Get data from the form
+        user_name = request.form['name']
+        return f"Form submitted! Hello, {user_name}."
+    return '''
+        <form method="POST">
+            Name: <input type="text" name="name">
+            <input type="submit" value="Submit">
+        </form>
+    '''
+
+# Route for certificate revocation how to use
+# curl -X POST -F "cert_path=/path/to/user_cert.pem" http://localhost:5000/revoke
+
+# In this example, when a POST request is sent to /revoke, the certificate is revoked using the Intermediate CA's 
+# private key, and the CRL is updated. You can later check this CRL in your NGINX configuration to prevent revoked 
+# certificates from being used.
+
+    
+@app.route('/revoke', methods=['POST'])
+def revoke_certificate():
+    # Get the path to the certificate to revoke
+    cert_path = request.form.get('cert_path')
+    
+    if not cert_path:
+        return jsonify({"error": "Certificate path is required"}), 400
+    
+    # Revoke the certificate using OpenSSL
+    revoke_command = [
+        'openssl', 'ca', '-revoke', cert_path,
+        '-keyfile', INTERMEDIATE_CA_KEY, '-cert', INTERMEDIATE_CA_CERT
+    ]
     try:
-        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return result.stdout.decode('utf-8')
+        subprocess.run(revoke_command, check=True)
     except subprocess.CalledProcessError as e:
-        return e.stderr.decode('utf-8')
+        return jsonify({"error": f"Failed to revoke certificate: {e}"}), 500
 
-# User onboarding route
+    # Generate an updated CRL after revocation
+    crl_command = [
+        'openssl', 'ca', '-gencrl', '-out', CRL_PATH,
+        '-keyfile', INTERMEDIATE_CA_KEY, '-cert', INTERMEDIATE_CA_CERT
+    ]
+    try:
+        subprocess.run(crl_command, check=True)
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Failed to update CRL: {e}"}), 500
 
-#EXAMPLE USAGE
-
-#curl -X POST -F "name=john_doe" http://127.0.0.1:5000/create_user
-
-@app.route('/create_user', methods=['POST'])
-def create_user():
-    user_name = request.form['name']
-    user_dir = os.path.join(USER_CERTS_PATH, user_name)
-
-    # Create a directory for the user if it doesn't exist
-    if not os.path.exists(user_dir):
-        os.makedirs(user_dir)
-
-    # Step 1: Generate the user's private key
-    key_file = os.path.join(user_dir, f'{user_name}.key')
-    run_command(f"openssl genpkey -algorithm RSA -out {key_file}")
-
-    # Step 2: Generate the CSR (Certificate Signing Request)
-    csr_file = os.path.join(user_dir, f'{user_name}.csr')
-    run_command(f"openssl req -new -key {key_file} -out {csr_file} -subj \"/CN={user_name}\"")
-
-    # Step 3: Sign the CSR with Intermediate CA to issue the certificate
-    cert_file = os.path.join(user_dir, f'{user_name}.crt')
-    run_command(f"openssl ca -in {csr_file} -out {cert_file} -cert {INTERMEDIATE_CA_PATH}/certs/intermediateCA.crt -keyfile {INTERMEDIATE_CA_PATH}/private/intermediateCA.key")
+    # Optionally, integrate with an OCSP responder here to notify it about revocation.
+    # This is typically done by interacting with an OCSP server to update the status.
 
     return jsonify({
-        'message': f'Certificate created for {user_name}!',
-        'status': 'success',
-        'user_name': user_name,
-        'certificate': cert_file
+        "message": "Certificate revoked and CRL updated successfully",
+        "crl_path": CRL_PATH
     })
+    
+    
+# In this example, the admin or system performs the recovery flow 
+# by generating a new key pair, signing it, and revoking the old certificate. 
+# The system then returns the new signed certificate 
+# and updated CRL.
 
-# User revocation route
-@app.route('/revoke_user', methods=['POST'])
-def revoke_user():
+@app.route('/recover', methods=['POST'])
+def recover_user():
+    # User proves identity via secure means (admin verification in practice)
     user_name = request.form['name']
-    user_dir = os.path.join(USER_CERTS_PATH, user_name)
+    
+    # Generate new private key and CSR for the user
+    new_user_key_path = f'/path/to/user_keys/{user_name}_new_private_key.pem'
+    new_user_csr_path = f'/path/to/user_keys/{user_name}_new.csr'
 
-    if not os.path.exists(user_dir):
-        return jsonify({
-            'message': f'User {user_name} not found.',
-            'status': 'error'
-        })
+    # Generate new private key
+    subprocess.run(['openssl', 'genpkey', '-algorithm', 'RSA', '-out', new_user_key_path, '-pkeyopt', 'rsa_keygen_bits:2048'])
 
-    cert_file = os.path.join(user_dir, f'{user_name}.crt')
+    # Generate CSR
+    subprocess.run(['openssl', 'req', '-new', '-key', new_user_key_path, '-out', new_user_csr_path, '-subj', f'/CN={user_name}'])
 
-    # Step 1: Revoke the certificate by adding to CRL (Certificate Revocation List)
-    crl_file = os.path.join(INTERMEDIATE_CA_PATH, 'crl', 'crl.pem')
-    run_command(f"openssl ca -revoke {cert_file} -crl_reason superseded")
-    run_command(f"openssl ca -gencrl -out {crl_file}")
-
-    # Optional: Add to OCSP if required
-
-    # Clean up the user's files (optional)
-    shutil.rmtree(user_dir)
+    # Sign the new CSR with the Intermediate CA
+    new_signed_cert_path = f'/path/to/user_keys/{user_name}_new_signed_cert.pem'
+    subprocess.run([
+        'openssl', 'x509', '-req', '-in', new_user_csr_path, '-CA', INTERMEDIATE_CA_CERT,
+        '-CAkey', INTERMEDIATE_CA_KEY, '-CAcreateserial', '-out', new_signed_cert_path, '-days', '365'
+    ])
+    
+    # Revoke the old certificate and update the CRL (this step assumes the old cert is known)
+    old_user_cert_path = request.form['old_cert_path']
+    subprocess.run(['openssl', 'ca', '-revoke', old_user_cert_path, '-keyfile', INTERMEDIATE_CA_KEY, '-cert', INTERMEDIATE_CA_CERT])
+    
+    # Generate updated CRL
+    crl_path = '/path/to/crl.pem'
+    subprocess.run(['openssl', 'ca', '-gencrl', '-out', crl_path, '-keyfile', INTERMEDIATE_CA_KEY, '-cert', INTERMEDIATE_CA_CERT])
 
     return jsonify({
-        'message': f'Certificate for {user_name} has been revoked!',
-        'status': 'success'
+        'message': 'Identity recovered successfully',
+        'new_signed_cert': new_signed_cert_path,
+        'crl_path': crl_path
     })
 
-# List all users' certificates
-@app.route('/list_users', methods=['GET'])
-def list_users():
-    users = []
-    for user in os.listdir(USER_CERTS_PATH):
-        user_dir = os.path.join(USER_CERTS_PATH, user)
-        if os.path.isdir(user_dir):
-            cert_file = os.path.join(user_dir, f'{user}.crt')
-            if os.path.exists(cert_file):
-                users.append({
-                    'user_name': user,
-                    'certificate': cert_file
-                })
-    return jsonify(users)
 
-# Serve the certificate file for download (optional)
-@app.route('/download_certificate/<user_name>', methods=['GET'])
-def download_certificate(user_name):
-    user_dir = os.path.join(USER_CERTS_PATH, user_name)
-    cert_file = os.path.join(user_dir, f'{user_name}.crt')
-    if os.path.exists(cert_file):
-        return send_from_directory(user_dir, f'{user_name}.crt', as_attachment=True)
-    else:
-        return jsonify({
-            'message': f'Certificate for {user_name} not found.',
-            'status': 'error'
-        })
+
+# Render a simple HTML page with the render_template function (requires an HTML file in the templates folder)
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 # Run the application
 if __name__ == '__main__':

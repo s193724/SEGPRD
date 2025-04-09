@@ -1,0 +1,30 @@
+[ req ]
+default_bits        = 2048
+default_md          = sha256
+default_keyfile     = privkey.pem
+distinguished_name  = req_distinguished_name
+req_extensions      = v3_req
+
+[ req_distinguished_name ]
+countryName                     = US
+stateOrProvinceName             = California
+localityName                    = San Francisco
+organizationName                = Test Organization
+organizationalUnitName          = IT Department
+commonName                      = testuser.example.com
+emailAddress                    = testuser@example.com
+
+# Optionally you can specify if these fields are required to be filled in
+countryName_default             = US
+stateOrProvinceName_default     = California
+localityName_default            = San Francisco
+organizationName_default        = Test Organization
+organizationalUnitName_default  = IT Department
+commonName_default              = testuser.example.com
+emailAddress_default            = testuser@example.com
+
+[ v3_req ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = testuser.example.com

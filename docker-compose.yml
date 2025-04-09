@@ -22,6 +22,7 @@ services:
     volumes:
       - ./pki/server:/etc/nginx/ssl  # <--- This is the key line
       - ./pki/root/certs:/etc/nginx/ssl/certs  # Mount root CA certificates
+      - ./pki:/app/pki
 
 networks:
   flask-nginx-net:

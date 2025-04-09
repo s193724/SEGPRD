@@ -6,10 +6,10 @@ import shutil
 # Initialize the Flask application
 app = Flask(__name__)
 
-INTERMEDIATE_CA_CERT = "/Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate/certs/intermediateCA.crt"
-INTERMEDIATE_CA_KEY = "/Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate/private/intermediateCA.key"
-CRL_PATH = "/Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate/crl/crl.pem"  #Path to the CRL (Certificate Revocation List) file
-USER_CERTS_PATH = "/Users/filiporlikowski/Documents/SEGPRD/project/pki/users"
+INTERMEDIATE_CA_CERT = "pki/intermediate/certs/intermediateCA.crt"
+INTERMEDIATE_CA_KEY = "pki/intermediate/private/intermediateCA.key"
+CRL_PATH = "pki/intermediate/crl/crl.pem"
+USER_CERTS_PATH = "pki/users"
 # Home route (returns a welcome message)
 @app.route('/')
 def home():
@@ -49,6 +49,8 @@ def submit():
 # private key, and the CRL is updated. You can later check this CRL in your NGINX configuration to prevent revoked 
 # certificates from being used.
 
+
+    
 @app.route('/revoke', methods=['POST'])
 def revoke_certificate():
     # Get the path to the certificate to revoke
