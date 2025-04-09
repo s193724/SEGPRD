@@ -7,20 +7,17 @@
 default_ca = CA_default           # Default CA section
 
 [ CA_default ]
-# Directory and file locations
-dir               = /path/to/your/pki/intermediate    # The base directory of your Intermediate CA
-certs             = $dir/certs                     # Directory to store certificates
-crl_dir           = $dir/crl                       # Directory to store CRLs
-new_certs_dir     = $dir/newcerts                  # Directory to store new certificates
-database          = $dir/myindex                  # Database to track issued certificates
+[ CA_default ]
+dir               = /Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate
+new_certs_dir     = $dir/newcerts
+certificate       = $dir/certs/intermediateCA.crt
+private_key       = $dir/private/intermediateCA.key
+database          = $dir/index.txt
+serial            = $dir/serial
+crlnumber         = $dir/crlnumber
+crl               = $dir/crl/crl.pem
 
-# File locations for the key and certificate files
-private_key       = $dir/private/intermediate.key  # Path to your Intermediate private key
-certificate       = $dir/certs/intermediate.crt   # Path to your Intermediate certificate
 
-# CRL settings
-crlnumber         = $dir/crlnumber                # CRL number file
-crl               = $dir/crl/intermediate.crl     # Path to the CRL
 
 # Certificate policy
 policy            = policy_any
@@ -51,3 +48,12 @@ extendedKeyUsage = serverAuth, clientAuth          # Usage for this intermediate
 subjectKeyIdentifier = hash                       # Subject key identifier for this CA certificate
 authorityKeyIdentifier = keyid,issuer:always      # Authority key identifier
 issuerAltName = issuer:copy                       # Copy issuer's subject name to the certificate
+
+
+[ usr_cert ]
+basicConstraints = CA:FALSE
+nsCertType = client, email
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth, emailProtection
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer

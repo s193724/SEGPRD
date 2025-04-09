@@ -1,0 +1,12 @@
+# Create a private key
+openssl genpkey -algorithm RSA -out testuser.key -pkeyopt rsa_keygen_bits:2048
+
+# Generate a CSR
+openssl req -new -key testuser.key -out testuser.csr -subj "/CN=testuser"
+
+# Sign the CSR with your Intermediate CA
+openssl ca -config /Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate/openssl.cnf \
+  -in testuser.csr \
+  -out testuser.crt \
+  -extensions usr_cert \
+  -days 365 -notext -batch
