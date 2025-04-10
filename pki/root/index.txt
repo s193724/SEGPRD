@@ -1,0 +1,1 @@
+V	300408160502Z		1000	unknown	/C=PT/ST=Porto/O=CNCS/CN=Intermediate CA

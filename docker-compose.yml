@@ -20,9 +20,19 @@ services:
     networks:
       - flask-nginx-net
     volumes:
-      - ./pki/server:/etc/nginx/ssl  # <--- This is the key line
-      - ./pki/root/certs:/etc/nginx/ssl/certs  # Mount root CA certificates
-      - ./pki:/app/pki
+      - ./pki/intermediate/certs/fullchain.cert.pem:/etc/nginx/ssl/fullchain.cert.pem
+
+  # Server private key
+      - ./pki/server/server.key.pem:/etc/nginx/ssl/server.key
+
+  # Root CA certificate (used as trusted certificate)
+      - ./pki/root/certs/rootCA.cert.pem:/etc/nginx/ssl/rootCA.crt
+
+  # Intermediate CA certificate
+      - ./pki/intermediate/certs/intermediateCA.cert.pem:/etc/nginx/ssl/intermediateCA.crt
+
+  # CRL file
+      - ./pki/intermediate/crl/intermediateCA.crl.pem:/etc/nginx/ssl/crl.pem
 
 networks:
   flask-nginx-net:
