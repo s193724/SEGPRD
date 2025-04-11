@@ -6,3 +6,4 @@ V	260420111959Z		1004	unknown	/C=PT/ST=Porto/L=Mathosinhos/O=CNCS/CN=OCSP server
 V	260420132337Z		1005	unknown	/C=IT/ST=Benevento/L=Telese Terme/O=Speednetweb spa/CN=localhost
 V	260420133637Z		1006	unknown	/C=IT/ST=Benevento/L=Telese/O=Speednet/CN=localhost
 V	260420223520Z		1007	unknown	/C=IT/ST=Benevento/L=Torello/O=CNCS/CN=filippo@gmail.com
+R	260411164036Z	250411164331Z	1008	unknown	/CN=revoked-client

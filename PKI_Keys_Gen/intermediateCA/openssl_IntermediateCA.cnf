@@ -5,7 +5,7 @@ default_ca = CA_default        # Specifies the default CA section to use.
 
 [ CA_default ]
 # Directory and file locations.
-dir = /Users/filip/Desktop/PKI_Project_1_SEGPRD/PKI_Keys_Gen/intermediateCA  # Base directory for the CA files.
+dir = /Users/filiporlikowski/Documents/SEGPRD/project/PKI_Keys_Gen/intermediateCA  # Base directory for the CA files.
 
 certs = $dir/certs                  # Directory for storing issued certificates.
 crl_dir = $dir/crl                  # Directory for storing certificate revocation lists (CRLs).

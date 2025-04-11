@@ -1,0 +1,6 @@
+curl --cert /Users/filiporlikowski/Documents/SEGPRD/project/PKI_Keys_Gen/client1/client1.cert.pem \
+     --key /Users/filiporlikowski/Documents/SEGPRD/project/PKI_Keys_Gen/client1/client1.key.pem \
+     --cacert /Users/filiporlikowski/Documents/SEGPRD/project/PKI_Keys_Gen/client1/client1-chain.cert.pem \
+     https://localhost:443/whoami
+
+    # helloFilip25
