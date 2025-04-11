@@ -234,3 +234,57 @@ openssl ocsp \
   -url http://localhost:2560 \
   -header Host=localhost:2560 \
   -no_nonce
+
+
+################## 6° Phase - Creating a User Certificate ##################
+cd ../intermediateCA
+mkdir ../client1
+
+# 6.1 - Create the server private key with a length of 2048 bits Our Root and Intermediate pairs are 4096 bits. 
+# Server and client certificates normally expire after one year, so we can safely use 2048 bits instead, as is common on the Internet.
+openssl genrsa -aes256 -out ../client1/client1.key.pem 2048
+chmod 400 ../client1/client1.key.pem
+
+# 6.2 - Create the server certificate signing request (CSR) using the private key
+# Note: For server certificates, the Common Name must be a fully qualified domain name (e.g.,
+# www.example.com).
+openssl req -config openssl_IntermediateCA.cnf -key ../client1/client1.key.pem -new -sha256 -out ../client1/client1.csr.pem
+# We virtually send this request to the Intermediate CA, which will verify the request and sign it.
+cp ../client1/client1.csr.pem csr
+
+# 6.3 - Sign the server certificate request with the intermediate CA
+openssl ca -config openssl_IntermediateCA.cnf -extensions usr_cert -days 375 -notext -md sha256 -in csr/client1.csr.pem -out certs/client1.cert.pem
+chmod 444 certs/client1.cert.pem
+# We virtually send this certificate to the Subscriber, who will install it on the server.
+cp certs/client1.cert.pem ../client1
+chmod 444 ../client1/client1.cert.pem
+
+# 6.4 - Verify the client certificate
+openssl x509 -noout -text -in ../client1/client1.cert.pem
+
+# 6.5 - Verify the chain of trust for the client1 certificate
+# Note: in this case we are verifying all the chain because ca-chain.cert.pem contains both the Root CA and the Intermediate CA certificates
+# but in reality we will already have the Root CA certificate installed in the devices (e.g., web browsers, users), so we can just verify the Intermediate chain
+openssl verify -CAfile certs/full-chain.cert.pem ../client1/client1.cert.pem
+
+# 6.6 - Create the server certificate chain
+# NOTE: In order to not have problems with the alignment between the key and the certificate, we need to specify **in Order** the chain of the certificates
+# So in this case, the client1 certificate is the first one, then the intermediate CA certificate. The root is not needed because it will be installed in the devices
+cat ../client1/client1.cert.pem certs/intermediateCA.cert.pem > ../client1/client1-chain.cert.pem
+
+# 6.7 - Create the PKCS12 file
+# NOTE: The PKCS#12 format is a binary format for storing the server certificate, any intermediate certificates, and the private key in one encryptable file.
+# The PKCS#12 file is used to import and export certificates and private keys on different platforms, such as Windows, macOS, and Linux.
+# The PKCS#12 file is also used to import and export certificates and private keys in web browsers, such as Chrome, Firefox, and Safari.
+cd ../client1
+
+openssl pkcs12 -export \
+  -in client1.cert.pem \
+  -inkey client1.key.pem \
+  -certfile client1-chain.cert.pem \
+  -out client1.p12 \
+  -name "Cert mTLS di Filippo"
+
+# In order to have the prompt from the browser to use the certificate, we need to add this certificate we just created in the Keychain Access
+# Then when we will contact the server, the browser will ask us to use this certificate
+# Once done the connection with the server, we're authenticated!!

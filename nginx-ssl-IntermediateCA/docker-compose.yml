@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  intermediate-ca-server:
+    build: .
+    container_name: intermediate-ca-server
+    ports: # Mappa le porte del container a quelle dell'host
+      - "4000:4000" # Porta per l'API
+    volumes:
+      - ../PKI_Keys_Gen/intermediateCA:/intermediateCA  # Monta un volume persistente per la cartella intermediateCA
+
+# With this instruction we say to Docker that we want to handle the volume
+# outside the container, so we can access it from the host machine
+volumes:
+  intermediateCA:  # Definisce il volume che Docker gestirà
