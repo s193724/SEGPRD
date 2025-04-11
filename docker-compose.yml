@@ -1,28 +1,33 @@
-version: "3.8"
+version: '3.8'
 
 services:
   flask-app:
     build: ./flask-app
     container_name: flask-app
     ports:
-      - "5000:5000"  # Expose Flask app on port 5000
+      - "5000:5000"
     networks:
       - flask-nginx-net
+    volumes:
+      - ./pki:/app/pki:ro  # Mount PKI structure as read-only inside Flask app
+      - ./pki/intermediate/openssl.cnf:/app/pki/intermediate/openssl.cnf:ro
 
   nginx:
-    build: ./nginx
+    build:
+      context: .  # Use the root project directory as the build context
+      dockerfile: ./nginx/Dockerfile  # Explicitly point to the nginx Dockerfile
     container_name: nginx
     ports:
-      - "80:80"   # Expose HTTP
-      - "443:443" # Expose HTTPS
+      - "80:80"
+      - "443:443"
     depends_on:
       - flask-app
     networks:
       - flask-nginx-net
     volumes:
-      - ./pki/server:/etc/nginx/ssl  # <--- This is the key line
-      - ./pki/root/certs:/etc/nginx/ssl/certs  # Mount root CA certificates
-      - ./pki:/app/pki
+      - ./pki/root/certs:/etc/nginx/pki/root/certs  # Mount root certs
+      - ./pki/intermediate/certs:/etc/nginx/pki/intermediate/certs  # Mount intermediate certs
+      - ./pki/server:/etc/nginx/pki/server  # Mount server certs and keys
 
 networks:
   flask-nginx-net:

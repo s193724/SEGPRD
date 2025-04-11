@@ -1,59 +1,160 @@
-# OpenSSL Configuration File for Intermediate CA
-
-# This is the main configuration file for the Intermediate CA
-# Adjust paths and parameters as necessary
-
+#################### Root CA Configuration file ####################
 [ ca ]
-default_ca = CA_default           # Default CA section
+# `man ca`
+default_ca = CA_default        # Specifies the default CA section to use.
 
 [ CA_default ]
-[ CA_default ]
-dir               = /Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate
-new_certs_dir     = $dir/newcerts
-certificate       = $dir/certs/intermediateCA.crt
-private_key       = $dir/private/intermediateCA.key
-database          = $dir/index.txt
-serial            = $dir/serial
-crlnumber         = $dir/crlnumber
-crl               = $dir/crl/crl.pem
+# Directory and file locations.
+dir = /Users/filiporlikowski/Documents/SEGPRD/project/pki/intermediate  # Base directory for the CA files.
 
+certs = $dir/certs                  # Directory for storing issued certificates.
+crl_dir = $dir/crl                  # Directory for storing certificate revocation lists (CRLs).
+new_certs_dir = $dir/newcerts       # Directory for storing newly issued certificates.
+database = $dir/index.txt           # Database file to keep track of issued certificates.
+serial = $dir/serial                # File to store the next serial number for certificates.
+RANDFILE = $dir/private/.rand       # File for storing random seed data.
 
+# The root key and root certificate.
+private_key = $dir/private/intermediateCA.key  # Path to the private key of the root CA.
+certificate = $dir/certs/intermediateCA.crt   # Path to the root CA certificate.
 
-# Certificate policy
-policy            = policy_any
+# For certificate revocation lists.
+crlnumber = $dir/crlnumber      # File to store the next CRL number.
+crl = $dir/crl/intermediateCA.crl       # Path to the CRL file.
+crl_extensions = crl_ext        # Specifies the CRL extensions to use.
+default_crl_days = 30           # Default validity period for CRLs in days.
 
-# Default key size
-default_days      = 3650                           # Default validity for certificates (in days)
-default_crl_days  = 30                             # Default validity for CRLs
-default_md        = sha256                         # Hashing algorithm
-preserve          = no                             # Preserve the certificate request (optional)
+# SHA-1 is deprecated, so use SHA-2 instead.
+default_md = sha256         # Default message digest algorithm for signatures.
+name_opt = ca_default       # Default name options for certificates.
+cert_opt = ca_default       # Default certificate options.
+default_days = 375          # Default validity period for certificates in days.
+preserve = no               # Whether to preserve the input order of extensions.
+policy = policy_loose       # Specifies the default policy to use for certificate issuance. (in this case strict)
 
-# The subject DN (Distinguished Name) fields
-[ policy_any ]
-# The fields that we accept for subject name
-commonName        = supplied                      # The common name (e.g., "Intermediate CA")
-countryName       = optional                      # Country Name (optional)
-stateOrProvinceName = optional                    # State or Province Name (optional)
-localityName      = optional                      # Locality Name (optional)
-organizationName  = supplied                      # Organization Name (e.g., "My Org")
-organizationalUnitName = optional                  # Organizational Unit Name (optional)
-emailAddress      = optional                      # Email Address (optional)
+[ policy_strict ]
+# We apply policy_strict for all Root CA signatures, as the Root CA is only being used to create Intermediate CAs.
+# See the POLICY FORMAT section of `man ca`.
+countryName = match                 # Country name must match the CA's value. Ensures you’re only signing certs for your own organization/country/etc.
+stateOrProvinceName = match         # State or province name must match the CA's value.
+organizationName = match            # Organization name must match the CA's value.
+organizationalUnitName = optional   # Organizational unit name is optional.
+commonName = supplied               # Common name must be supplied.
+emailAddress = optional             # Email address is optional.
 
-# Extensions for the Intermediate CA certificate
-[ extensions_intermediate_ca ]
-# Basic constraints for intermediate certificate
-basicConstraints = critical, CA:TRUE, pathlen:0   # Set the certificate as a CA, and restrict the path length
-keyUsage = critical, digitalSignature, cRLSign, keyCertSign   # Key usage for CA cert
-extendedKeyUsage = serverAuth, clientAuth          # Usage for this intermediate CA (can be customized)
-subjectKeyIdentifier = hash                       # Subject key identifier for this CA certificate
-authorityKeyIdentifier = keyid,issuer:always      # Authority key identifier
-issuerAltName = issuer:copy                       # Copy issuer's subject name to the certificate
+[ policy_loose ]
+# We apply policy_loose for all Intermediate CA signatures, as the Intermediate CA will be used for signing
+# server and subscriber certificates that may come from a variety of parties.
+# See the POLICY FORMAT section of the `ca` man page.
+countryName = optional              # Country name is optional.
+stateOrProvinceName = optional      # State or province name is optional.
+localityName = optional             # Locality name is optional.
+organizationName = optional         # Organization name is optional.
+organizationalUnitName = optional   # Organizational unit name is optional.
+commonName = supplied               # Common name must be supplied.
+emailAddress = optional             # Email address is optional.
 
+[ req ]
+# Options for the `req` tool (`man req`).
+default_bits = 2048         # specifies the default size (in bits) for cryptographic keys that OpenSSL will generate.
+distinguished_name = req_distinguished_name  # Section for distinguished name fields.
+string_mask = utf8only      # Enforce UTF-8 encoding for strings.
+# SHA-1 is deprecated, so use SHA-2 instead.
+default_md = sha256         # Default message digest algorithm for signatures.
+# Extension to add when the -x509 option is used.
+x509_extensions = v3_root_ca     # Extensions to use for self-signed certificates.
+
+[ req_distinguished_name ]
+# See <https://en.wikipedia.org/wiki/Certificate_signing_request>.
+# The [ req_distinguished_name ] section declares the information normally required in a Certificate
+# Signing Request. We can optionally specify some defaults.
+countryName = Country Name (2 letter code)          # Field for the country name.
+stateOrProvinceName = State or Province Name        # Field for the state or province name.
+localityName = Locality Name                        # Field for the locality name.
+0.organizationName = Organization Name              # Field for the organization name.
+organizationalUnitName = Organizational Unit Name   # Field for the organizational unit name.
+commonName = Common Name                            # Field for the common name.
+emailAddress = Email Address                        # Field for the email address.
+# Optionally, specify some defaults.
+countryName_default = PT                            # Default country name.
+stateOrProvinceName_default = Porto                 # Default state or province name.
+localityName_default =                              # Default locality name (empty).
+0.organizationName_default = CNCS                   # Default organization name (CNCS = Centro Nacional de CiberSegurança)
+#organizationalUnitName_default =                   # Default organizational unit name (commented out).
+#emailAddress_default =                             # Default email address (commented out).
+
+# The next few sections are extensions that can be applied when signing certificates. For example, passing
+# the -extensions v3_root_ca command-line argument will apply the options set in [ v3_root_ca ].
+[ v3_root_ca ]
+# We will apply the v3_root_ca extension when we create the root certificate.
+subjectKeyIdentifier = hash                                  # Identifier for the subject's public key.
+authorityKeyIdentifier = keyid:always,issuer                 # Identifier for the issuing CA.
+basicConstraints = critical, CA:true                         # Marks the certificate as a CA certificate.
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign  # Key usage extensions for a CA.
+
+[ v3_intermediate_ca ]
+# We will apply the v3_ca_intermediate extension when we create the Intermediate Certificate.
+subjectKeyIdentifier = hash                                 # Identifier for the subject's public key.
+authorityKeyIdentifier = keyid:always,issuer                # Identifier for the issuing CA.
+# Marks the certificate as an intermediate CA with a path length of 0. pathlen:0 ensures that there can be no further Certification Authorities below the Intermediate CA.
+basicConstraints = critical, CA:true, pathlen:0 
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign # Key usage extensions for an intermediate CA.
 
 [ usr_cert ]
+# We will apply the usr_cert extension when signing client certificates, such as those used for remote user authentication.
+basicConstraints = CA:FALSE                         # Marks the certificate as a non-CA certificate. CA:FALSE — this cert can’t act as a CA.
+nsCertType = client, email                          # Netscape certificate type for client and email usage.
+nsComment = "OpenSSL Generated Client Certificate"  # Comment for the certificate.
+subjectKeyIdentifier = hash                         # Identifier for the subject's public key.
+authorityKeyIdentifier = keyid,issuer               # Identifier for the issuing CA.
+keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment  # Key usage extensions for a client certificate.
+extendedKeyUsage = clientAuth, emailProtection      # Extended key usage for client authentication and email protection.
+
+[ server_cert ]
+# We will apply the server_cert extension when signing server certificates, such as those used for web servers.
+basicConstraints = CA:FALSE                         # Marks the certificate as a non-CA certificate.
+nsCertType = server                                 # Netscape certificate type for server usage.
+nsComment = "OpenSSL Generated Server Certificate"  # Comment for the certificate.
+subjectKeyIdentifier = hash                         # Identifier for the subject's public key.
+authorityKeyIdentifier = keyid,issuer:always        # Identifier for the issuing CA.
+keyUsage = critical, digitalSignature, keyEncipherment  # Key usage extensions for a server certificate.
+extendedKeyUsage = serverAuth                       # Extended key usage for server authentication.
+
+# helloFilip25
+[ server_cert_with_san ]
 basicConstraints = CA:FALSE
-nsCertType = client, email
-keyUsage = digitalSignature, keyEncipherment
-extendedKeyUsage = clientAuth, emailProtection
+nsCertType = server
+nsComment = "OpenSSL Generated Server Certificate with SAN"
 subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer
+authorityKeyIdentifier = keyid,issuer:always
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[ server_cert_with_san_crl_ocsp ]
+basicConstraints = CA:FALSE
+nsCertType = server
+nsComment = "OpenSSL Generated Server Certificate with SAN"
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer:always
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+crlDistributionPoints = URI:http://localhost:8000/intermediateCA.crl
+authorityInfoAccess = OCSP;URI:http://localhost/ocsp
+
+[ alt_names ]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
+
+[ crl_ext ]
+# The crl_ext extension is automatically applied when creating Certificate Revocation Lists.
+authorityKeyIdentifier=keyid:always  # Identifier for the issuing CA.
+
+[ ocsp ]
+# We will apply the ocsp extension when signing the Online Certificate Status Protocol (OCSP) certificate.
+basicConstraints = CA:FALSE                     # Marks the certificate as a non-CA certificate.
+subjectKeyIdentifier = hash                     # Identifier for the subject's public key.
+authorityKeyIdentifier = keyid,issuer           # Identifier for the issuing CA.
+keyUsage = critical, digitalSignature           # Key usage extensions for OCSP signing.
+extendedKeyUsage = critical, OCSPSigning        # Extended key usage for OCSP signing.
