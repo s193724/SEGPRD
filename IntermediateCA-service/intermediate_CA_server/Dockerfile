@@ -19,9 +19,4 @@ COPY intermediateCAServer.py .
 # in this way we don't lose the changes made to the folder when we run the container.
 # COPY ../PKI_Keys_Gen/intermediateCA /intermediateCA
 
-# We set an environment variable to specify the base directory for the intermediate CA
-# In this way, in our python code we can use os.environ['CA_BASE_DIR'] to get the value
-# of the environment variable, without need to hardcode the path.
-ENV CA_BASE_DIR=/intermediateCA
-
 CMD ["python", "intermediateCAServer.py"]

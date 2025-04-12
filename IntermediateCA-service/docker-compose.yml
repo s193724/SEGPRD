@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  intermediate-ca-server:
+    build: 
+      context: ./intermediate_CA_server
+      dockerfile: Dockerfile
+    container_name: intermediate-ca-server
+    ports: # Mappa le porte del container a quelle dell'host
+      - "4000:4000" # Porta per l'API
+    volumes:
+      - ../PKI_Keys_Gen/intermediateCA:/intermediateCA  # Monta un volume persistente per la cartella intermediateCA
+    environment:
+      # We set an environment variable to specify the base directory for the intermediate CA
+      # In this way, in our python code we can use os.environ['CA_BASE_DIR'] to get the value
+      # of the environment variable, without need to hardcode the path.
+      - CA_BASE_DIR=/intermediateCA
+  
+  ocsp_server:
+    build:
+      context: ./ocsp_server
+    container_name: ocsp_server
+    ports:
+      - "2560:2560"
+    volumes:
+      - ../PKI_Keys_Gen/intermediateCA:/intermediateCA
+      - ../PKI_Keys_Gen/ocsp_server:/ocsp_server
+    command: >
+      openssl ocsp
+      -port 2560
+      -text
+      -index /intermediateCA/index.txt
+      -CA /ocsp_server/ocsp_server-fullchain.cert.pem
+      -rkey /ocsp_server/ocsp_server.key.pem
+      -rsigner /ocsp_server/ocsp_server.cert.pem
+
+    # -nrequest 2   # To limit the number of requests
